@@ -147,6 +147,8 @@ class Demo extends React.Component<{},DemoState> {
             this.state.creature[1][2] = 3;
             this.state.vision_source[1][1] = base_vision;
             this.state.vision_source[2][1] = base_vision;
+            this.state.vision_source[1][2] = base_vision;
+            this.swarm_no_update();
             this.swarm_no_update();
         }
         document.title = "Rock & Stone";
@@ -333,6 +335,69 @@ class Demo extends React.Component<{},DemoState> {
         return [x,y]
     }
 
+    checkwin() {
+        var dropped: boolean = true;
+        for (var i=0;i<pc.length;i++) {
+            const pos = this.state.player_position[i];
+            dropped = dropped && cavegen.get(this.state.grid[pos[0]][pos[1]]!) == 'drop pod';
+        }
+        if (dropped) {
+            const value = this.state.ores[0] + this.state.ores[2] * 3;
+            if (value >= 5 * 3) {
+                alert('Mission success with '+this.state.ores[0].toString()+" gold and "+this.state.ores[2].toString()+" morkite!");
+            } else {
+                const newgrid = Array.from({ length: gridsize+2 }, (_: number, i: number) => Array.from({ length: gridsize+2 }, (_: number, j: number) => (j===0 || i===0 || j===gridsize+1 || i===gridsize+1 ? 600 : getRandomInt(randmax))));
+                newgrid[1][1] = 0;
+                newgrid[2][1] = 0;
+                newgrid[1][2] = 0;
+                newgrid[2][2] = 0;
+                const newcre = Array.from({ length: gridsize+2 }, (_: number, i: number) => Array.from({ length: gridsize+2 }, (_: number, j: number) => 0));
+                newcre[1][1] = 1;
+                newcre[2][1] = 2;
+                newcre[1][2] = 3;
+                const newvis = Array.from({ length: gridsize+2 }, (_: number, i: number) => Array.from({ length: gridsize+2 }, (_: number, j: number) => -1));
+                newvis[1][1] = base_vision;
+                newvis[2][1] = base_vision;
+                newvis[1][2] = base_vision;
+                const newmon = Array.from({ length: gridsize+2 }, (_: number, i: number) => Array.from({ length: gridsize+2 }, (_: number, j: number) => [-1,-1]));
+                for (var i=0; i< gridsize+2; i++) {
+                    for (var j=0; j< gridsize+2; j++) {
+                        const type = monsterspawnmap.get(getRandomInt(randmax));
+                        if (type) {
+                            if (newcre[i][j] > 0 || !npc.includes(type)) {
+                                continue;
+                            }
+                            newcre[i][j] = type;
+                            newmon[i][j] = [defaultnpcHP[type-10], defaultnpcHP[type-10]];
+                        }
+                        const type2 = monsterspawnmap.get(getRandomInt(randmax));
+                        if (type2) {
+                            if (newcre[i][j] > 0 || !npc.includes(type2)) {
+                                continue;
+                            }
+                            newcre[i][j] = type2;
+                            newmon[i][j] = [defaultnpcHP[type2-10], defaultnpcHP[type2-10]];
+                        }
+                    }
+                }
+                this.setState({
+                    grid: newgrid,
+                    creature: newcre,
+                    control: 1,
+                    player_position: [[1,1],[2,1],[1,2]],
+                    select_creature: [-1, -1],
+                    select_grid: [-1, -1],
+                    vision_source: newvis,
+                    weapon: -1,
+                    special: Array.from(pc, () => [-1,-1]),
+                    monsterHP: newmon,
+                    turnCount: 1,
+                });
+                alert("You have yet to satisfy the mission quota, continue your good work!");
+            }
+        }
+    }
+
     move_player(num: number, i: number, j: number) {
         if (cavegen.get(this.state.grid[i][j]) && (cavegen.get(this.state.grid[i][j]) === 'wall' || ore.includes(cavegen.get(this.state.grid[i][j])!))) {
             this.mine(i, j);
@@ -347,6 +412,7 @@ class Demo extends React.Component<{},DemoState> {
         this.state.vision_source[x][y] = -1;
         this.state.select_creature[0] = i;
         this.state.select_creature[1] = j;
+        this.checkwin();
         this.forceUpdate();
     }
 

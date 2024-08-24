@@ -1,12 +1,12 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 //import Demo from './github/Demo.js';
-import Demo from './Demo.tsx';
+import Demo from './Demo';
 
 // ========================================
 
 const root = ReactDOM.createRoot(
-  document.getElementById('root')
+  document.getElementById('root') as HTMLElement
 );
 
 root.render(
