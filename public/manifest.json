@@ -1,6 +1,6 @@
 {
-  "short_name": "Quiz",
-  "name": "UrsaTech Quiz Plugin",
+  "short_name": "DRG",
+  "name": "DRG Boardgame",
   "icons": [],
   "start_url": ".",
   "display": "standalone",
