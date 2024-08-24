@@ -1,14 +1,1 @@
-import React from 'react';
-import ReactDOM from 'react-dom/client';
-//import Demo from './github/Demo.js';
-import Demo from './Demo.tsx';
-
-// ========================================
-
-const root = ReactDOM.createRoot(
-  document.getElementById('root')
-);
-
-root.render(
-  React.createElement(Demo, null)
-);
+document.body.innerHTML += '<div style="position:absolute;width:100%;height:100%;opacity:0.3;z-index:100;background:#000;"></div>';

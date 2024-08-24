@@ -42,11 +42,11 @@ for (var i = 0; i < randmax; i++) {
         cavegen.set(i, 'hole');
     }else if (i < 930) {
         cavegen.set(i, 'gold');
-    }else if (i < 950) {
-        cavegen.set(i, 'nitra');
     }else if (i < 960) {
+        cavegen.set(i, 'nitra');
+    }else if (i < 968) {
         cavegen.set(i, 'morkite')
-    }else if (i < 980) {
+    }else if (i < 990) {
         cavegen.set(i, ore[getRandomInt(ore.length-2)+2])
     }
 
@@ -307,13 +307,13 @@ class Demo extends React.Component<{},DemoState> {
 
     attack(x: number, y: number, p: number) {
         const roll = 1 + getRandomInt(6);
+        if (creaturegen.get(this.state.creature[x][y]) == "exploder") {
+            this.despawn_monster(x, y);
+        }
         if (roll >= 4) {
             this.state.players[p-1][0] -= 1;
             alert(creaturegen.get(this.state.creature[x][y])+" hit "+creaturegen.get(p)+(roll === 6 ? (' critically, '+creaturegen.get(p)+' gain the effect of '+criteffect[this.state.creature[x][y]-10]): '.'));
             this.forceUpdate();
-            if (creaturegen.get(this.state.creature[x][y]) == "exploder") {
-                this.despawn_monster(x, y);
-            }
         }
     }
 
@@ -344,7 +344,11 @@ class Demo extends React.Component<{},DemoState> {
         if (dropped) {
             const value = this.state.ores[0] + this.state.ores[2] * 3;
             if (value >= 5 * 3) {
-                alert('Mission success with '+this.state.ores[0].toString()+" gold and "+this.state.ores[2].toString()+" morkite!");
+                var mes: string = 'Mission success! Retrieving minerals...\n';
+                for (var i=0;i<ore.length;i++) {
+                    mes += ore[i]+': '+this.state.ores[i].toString()+'\n';
+                }
+                alert(mes);
             } else {
                 const newgrid = Array.from({ length: gridsize+2 }, (_: number, i: number) => Array.from({ length: gridsize+2 }, (_: number, j: number) => (j===0 || i===0 || j===gridsize+1 || i===gridsize+1 ? 600 : getRandomInt(randmax))));
                 newgrid[1][1] = 0;
@@ -421,8 +425,7 @@ class Demo extends React.Component<{},DemoState> {
         this.state.grid[i][j] = 0;
         if (mined && ore.includes(mined!)) {
             if (mined == 'egg') {
-                this.swarm_no_update();
-                this.setState({turnCount: 1});
+                this.setState({turnCount: 10});
             }
             this.state.ores[ore.indexOf(mined)]++;
             this.forceUpdate();
@@ -649,7 +652,7 @@ class Demo extends React.Component<{},DemoState> {
                     }} style={{cursor: 'pointer', position: 'relative', margin: 'auto', width: '80%', height: '30px', backgroundColor: '#990000', marginTop: '20px', textAlign: 'center', lineHeight: '30px' ,borderRadius: '15px'}}><b>Remove</b></div>
                 </div>: '')}
                 <div onClick={() => {
-                    if (this.state.turnCount < period-this.state.ores[4]*2) {
+                    if (this.state.turnCount < period-Math.min(4, this.state.ores[4]*2)) {
                         var moved: number[] = [];
                         for (var i=0; i<gridsize+2; i++) {
                             for (var j=0; j<gridsize+2; j++) {
@@ -667,8 +670,7 @@ class Demo extends React.Component<{},DemoState> {
                     alert('Monster Turn Finished');
                 }}style={{width: 130, height: 50, border: '7px #442222 solid', cursor: 'pointer', backgroundColor: '#332222', position:'absolute', top: 350, left: gridsize*50+150, borderRadius: 10, lineHeight: '50px', textAlign: 'center', color: 'red'}}><b>End Turn</b></div>
                 <div onClick={() => {
-                    this.swarm();
-                    this.setState({turnCount: 1});
+                    this.setState({turnCount: 10});
                     this.drop_pod();
                 }}style={{width: 130, height: 50, border: '7px #442222 solid', cursor: 'pointer', backgroundColor: '#332222', position:'absolute', top: 420, left: gridsize*50+150, borderRadius: 10, lineHeight: '50px', textAlign: 'center', color: 'red'}}><b>Call Extraction</b></div>
                 <div onClick={() => {
