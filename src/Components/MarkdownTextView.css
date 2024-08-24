@@ -1,0 +1,25 @@
+:root {
+    --link-active: #498ff8;
+    --link-visited: #42638d;
+    --text-color: #333;
+    --code-token: #f2f2f2;
+    --inline-code: #e95f44;
+}
+
+.markdown-view a:link {
+    color: var(--link-active);
+}
+
+.markdown-view a:visited {
+    color: var(--link-visited);
+}
+
+.inline-code {
+    display: inline-block;
+    border-radius: 4px;
+    background-color: var(--code-token);
+    padding: 2px 4px;
+    font-size: 91%;
+    color: var(--inline-code);
+    margin: 0px 1px;
+}
