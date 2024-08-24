@@ -1,6 +1,6 @@
 // import React from 'react';
 // import ReactDOM from 'react-dom/client';
-import Demo from './github/Demo';
+import Demo from './github/Demo.js';
 
 // ========================================
 
