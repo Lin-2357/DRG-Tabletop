@@ -100,7 +100,7 @@ for (var i = 0; i < npc.length; i++) {
 var gridsize = 25;
 var base_vision = 5;
 
-const state = {
+var state = {
   grid: Array.from({ length: gridsize+2 }, (_, i) => Array.from({ length: gridsize+2 }, (_, j) => (j===0 || i===0 || j===gridsize+1 || i===gridsize+1 ? 600 : getRandomInt(randmax)))),
                 creature: Array.from({ length: gridsize+2 }, (_, i) => Array.from({ length: gridsize+2 }, (_, j) => 0)),
                 control: 1,
@@ -115,6 +115,17 @@ const state = {
                 monsterHP: Array.from({ length: gridsize+2 }, (_, i) => Array.from({ length: gridsize+2 }, (_, j) => [-1,-1])),
                 turnCount: 1,
 };
+
+state.grid[1][1] = 0;
+            state.grid[2][1] = 0;
+            state.grid[1][2] = 0;
+            state.grid[2][2] = 0;
+            state.creature[1][1] = 1;
+            state.creature[2][1] = 2;
+            state.creature[1][2] = 3;
+            state.vision_source[1][1] = base_vision;
+            state.vision_source[2][1] = base_vision;
+            state.vision_source[1][2] = base_vision;
 
 function addturn() {
   if (state.turnCount < period-Math.min(4, state.ores[4]*2)) {
@@ -157,19 +168,75 @@ function loadfile() {
   
 }
 
+function fireweapon() {
+
+}
+
+function checkwin() {
+   
+}
+
+function mine(i,j) {
+    const mined = cavegen.get(state.grid[i][j])
+    state.grid[i][j] = 0;
+    if (mined && ore.includes(mined)) {
+        if (mined == 'egg') {
+            state.turnCount = 10;
+        }
+        state.ores[ore.indexOf(mined)]++;
+        update();
+    }
+}
+
+function move_player(num, i, j) {
+    if (cavegen.get(state.grid[i][j]) && (cavegen.get(state.grid[i][j]) === 'wall' || ore.includes(cavegen.get(state.grid[i][j])))) {
+        mine(i, j);
+    }
+    const x = state.player_position[num-1][0];
+    const y = state.player_position[num-1][1];
+    state.player_position[num-1][0] = i;
+    state.player_position[num-1][1] = j;
+    state.creature[i][j] = num;
+    state.creature[x][y] = 0;
+    state.vision_source[i][j] = base_vision;
+    state.vision_source[x][y] = -1;
+    state.select_creature[0] = i;
+    state.select_creature[1] = j;
+    checkwin();
+    update();
+}
+
+function clickcreature(i,j) {
+    const y = state.creature[i][j];
+    if (!y) {
+        return;
+    }
+    if (pc.includes(y)) {
+        state.control = y;
+    }
+    state.select_creature= [i, j];
+    if (npc.includes(y)) {
+        if (state.weapon > 0) {
+            fireweapon(i, j);
+            state.weapon = -1;
+        }
+    }
+    update();
+}
+
 function clickgrid(i, j) {
     if (state.select_creature[0] === -1 || state.select_creature[1] === -1) {
-       // return
+       return
     }
     if ((state.select_grid[0] !== i || state.select_grid[1] !== j) || state.control !== state.creature[state.select_creature[0]][state.select_creature[1]]) {
         state['select_grid'][0] = i;
         state['select_grid'][1] = j;
     } else {
         if (state.weapon > 0) {
-            //fireweapon(i, j);
-            //setState({weapon: -1});
+            fireweapon(i, j);
+            state.weapon = -1;
         } else {
-            //move_player(this.state.control, i, j);
+            move_player(state.control, i, j);
         }
     }
     update();
@@ -188,8 +255,7 @@ function update() {
       
   </div>
   <h3>Loot</h3>
-  <div style={{paddingRight: 20, backgroundColor: '#222222', display: 'flex', flexDirection: 'row', overflowX: 'scroll', alignItems: 'center', marginBottom: 'max(30px, 6%)', borderRadius: 10, padding: '20px, 20px, 20px, 20px', width: 50*gridsize+120, height: '200px', position: 'relative'}}>
-      
+  <div id="loot" style="background-color: #222222; display: flex; flex-direction: row; overflow-x: scroll; align-items: center; margin-bottom: max(30px, 6%); border-radius: 10px; padding: 20px 20px 20px 20px; width: ${50*gridsize+120}px; height: ${200}px, position: relative">
   </div>
   </div>`;
   var gridss = '';
@@ -199,28 +265,42 @@ function update() {
       gridss += `<div id=${i*(gridsize+2)+j} style="width:46px; height:46px; background-color: ${colormap.get(cavegen.get(y))}; border-radius: 8%; border: 2px ${(state.select_grid[0]===i&&state.select_grid[1]===j? 'orange' : 'black')} solid; position:absolute; top: ${i*50+10}px; left: ${j*50+10}px">`;
       gridss += mapimage.get(cavegen.get(y))? `<div style="border-radius:30%; margin:auto; border:5px rgba(0,0,0,0) solid; height: 42px; width: 42px"><img src="${mapimage.get(cavegen.get(y))}" width="36px" style="border-radius: 30%;"></img></div>`: '';
       gridss += `</div>`;
+      const yy = state.creature[i][j];
+      if (creaturegen.get(yy)) {
+        gridss += `<div id="ct${i*(gridsize+2)+j}" style="width:42px; cursor: pointer; height:42px; background-color: ${creaturemap.get(creaturegen.get(yy))}; border-radius: 50%; border: 2px ${(state.select_creature[0]===i&&state.select_creature[1]===j? 'orange' : 'black')} solid; position:absolute; top: ${i*50+12}px; left: ${j*50+12}px">`;
+        gridss += creaturegen.get(yy)? `<img src="${creatureimage.get(creaturegen.get(yy))}" style="vertical-align: middle;" width=${pc.includes(yy)? "42px" : "38px"}></img>` : ''
+        gridss += `</div>`;        
+      }
+
     }
   }
   document.getElementById('cave').innerHTML = gridss;
-
-}
-update();
-document.getElementById(
-  'turner').addEventListener(
-  'click', addturn);
-document.getElementById(
-  'caller').addEventListener(
-  'click', droppod);
-document.getElementById(
-  'saver').addEventListener(
-  'click', savefile);
-document.getElementById(
-  'loader').addEventListener(
-  'click', loadfile);
-for (var i=0;i<gridsize+2;i++) {
-  for (var j=0;j<gridsize+2;j++) {
-    document.getElementById(
-      `${i*(gridsize+2)+j}`).addEventListener(
-      'click', ()=>{console.log(i,j);clickgrid(i,j)});
+  document.getElementById(
+    'turner').addEventListener(
+    'click', addturn);
+  document.getElementById(
+    'caller').addEventListener(
+    'click', droppod);
+  document.getElementById(
+    'saver').addEventListener(
+    'click', savefile);
+  document.getElementById(
+    'loader').addEventListener(
+    'click', loadfile);
+  for (var i=0;i<gridsize+2;i++) {
+    for (var j=0;j<gridsize+2;j++) {
+      const x = i;
+      const y = j;
+      document.getElementById(
+        `${i*(gridsize+2)+j}`).addEventListener(
+        'click', ()=>{clickgrid(x,y)});
+        if (document.getElementById(
+            `ct${i*(gridsize+2)+j}`)) {
+            document.getElementById(
+            `ct${i*(gridsize+2)+j}`).addEventListener(
+            'click', ()=>{clickcreature(x,y)});
+        }
+    }
   }
 }
+update();
