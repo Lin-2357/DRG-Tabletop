@@ -2,6 +2,7 @@ import React from 'react';
 
 const pc = [1,2,3]
 const npc = [10,11,12,13,14]
+const boss = [100, 101]
 const randmax = 1000;
 const period = 10;
 
@@ -14,6 +15,7 @@ function distance(a: number[], b: number[]) {
 }
 
 interface DemoState {
+    mission: number,
     grid: number[][],
     creature: number[][],
     control: number,
@@ -30,9 +32,15 @@ interface DemoState {
 }
 
 const ore: string[] = ['gold', 'nitra', 'morkite', 'egg', 'corestone', 'jade', 'bismor', 'pearl', 'croppa', 'magnite', 'araq'];
+const mission: string[] = ['mine morkite', 'on-site refinery', 'heartstone', 'golden dreadnought', 'deep dive', 'rescue M.U.L.E', 'hack rival company', 'the caretaker'];
+const missionNum: number[] = [0, 1, 1, 0, 1, 3, 2, 0];
+const missionsize: number[] = [0, 2, 2, 0, 2, 1, 2, 0];
 
 const cavegen: Map<number, string> = new Map<number, string>();
 cavegen.set(-10, 'drop pod');
+for (var i=0; i<mission.length; i++) {
+    cavegen.set(i-100, mission[i]);
+}
 for (var i = 0; i < randmax; i++) {
     if (i < 500) {
         cavegen.set(i, 'floor');
@@ -51,7 +59,7 @@ for (var i = 0; i < randmax; i++) {
     }
 
     else {
-        cavegen.set(i, 'wall');
+        cavegen.set(i, 'jade');
     }
 }
 
@@ -91,6 +99,13 @@ for (var i=0;i<npc.length;i++) {
     creaturegen.set(i+10, monsterlist[i]);
 }
 
+const bosslist = ['golden dreadnought', 'the caretaker']
+const bossHP = [10, 10]
+const bossArmor = [1, 0]
+creaturegen.set(100, 'golden dreadnought')
+creaturegen.set(101, 'the caretaker')
+
+
 const colormap: Map<string, string> = new Map<string, string>();
 colormap.set('wall', '#443322');
 colormap.set('hole', '#111111');
@@ -100,6 +115,9 @@ const mapimage: Map<string, string> = new Map<string, string>();
 for (var x in ore) {
     mapimage.set(ore[x], './assets/'+ore[x]+'.png');
     colormap.set(ore[x], colormap.get('wall')!);
+}
+for (var i=0; i<mission.length; i++) {
+    colormap.set(mission[i], '#441111');
 }
 
 const creaturemap: Map<string, string> = new Map<string, string>();
@@ -114,6 +132,11 @@ for (var i=0;i<npc.length;i++) {
     creaturemap.set(monsterlist[i], '#444422');
     creatureimage.set(monsterlist[i], './assets/'+monsterlist[i]+'.png');
 }
+for (var i=0;i<boss.length;i++) {
+    creaturemap.set(bosslist[i], '#444422');
+    creatureimage.set(bosslist[i], './assets/'+bosslist[i]+'.png');
+}
+
 
 const gridsize: number = 25;
 const base_vision = 5;
@@ -124,6 +147,7 @@ class Demo extends React.Component<{},DemoState> {
         super(props);
         if (true) {
             this.state = {
+                mission: -100,
                 grid: Array.from({ length: gridsize+2 }, (_: number, i: number) => Array.from({ length: gridsize+2 }, (_: number, j: number) => (j===0 || i===0 || j===gridsize+1 || i===gridsize+1 ? 600 : getRandomInt(randmax)))),
                 creature: Array.from({ length: gridsize+2 }, (_: number, i: number) => Array.from({ length: gridsize+2 }, (_: number, j: number) => 0)),
                 control: 1,
@@ -150,8 +174,175 @@ class Demo extends React.Component<{},DemoState> {
             this.state.vision_source[1][2] = base_vision;
             this.swarm_no_update();
             this.swarm_no_update();
+            for (var k=0;k<missionNum[this.state.mission];k++) {
+                const misx = getRandomInt(gridsize-missionsize[this.state.mission+100])+3-missionsize[this.state.mission+100];
+                const misy = getRandomInt(gridsize-missionsize[this.state.mission+100])+3-missionsize[this.state.mission+100];
+                console.log(misx, misy)
+                for (var i=0;i<missionsize[this.state.mission+100];i++) {
+                    for (var j=0;j<missionsize[this.state.mission+100];j++) {
+                        this.state.grid[misx+i][misy+j] = this.state.mission;
+                        this.state.vision_source[misx+i][misy+j] = 0;
+                    }
+                }
+            }
+            this.bossspawn();
         }
         document.title = "Rock & Stone";
+    }
+
+    activate() {
+        const ref = [
+            ()=>false,
+            (i:number,j:number) => {
+                if (this.state.grid[i][j] === this.state.mission) {
+                    for (var x=-1;x<=1;x++) {
+                        for (var y=-1;y<=1;y++) {
+                            if (x+i<0 || x+i>=gridsize+2 || y+j<0 || y+j>=gridsize+2) {
+                                continue;
+                            }
+                            if (cavegen.get(this.state.grid[x+i][y+j])! == 'morkite') {
+                                return true;
+                            }
+                        }
+                    }
+                }
+                return false;
+            },
+            (i:number,j:number) => {
+                if (this.state.grid[i][j] == this.state.mission) {
+                    for (var x=-1;x<=1;x++) {
+                        for (var y=-1;y<=1;y++) {
+                            if (x+i<0 || x+i>=gridsize+2 || y+j<0 || y+j>=gridsize+2) {
+                                continue;
+                            }
+                            if (pc.includes(this.state.creature[x+i][y+j]) && this.state.players[this.state.creature[x+i][y+j]-1][0] > 0) {
+                                return true;
+                            }
+                        }
+                    }
+                }
+                return false;
+            },
+            (i:number,j:number) => false,
+            (i:number,j:number) => {
+                if (i===gridsize+1 || j===gridsize+1) {
+                    return false;
+                } else {
+                    var ct:number = 0;
+                    var tl:number = 0;
+                    const pt = [this.state.mission]
+                    ct += pc.includes(this.state.creature[i][j])?1:0;
+                    ct += pc.includes(this.state.creature[i+1][j])?1:0;
+                    ct += pc.includes(this.state.creature[i][j+1])?1:0;
+                    ct += pc.includes(this.state.creature[i+1][j+1])?1:0;
+                    tl += pt.includes(this.state.grid[i][j])?1:0;
+                    tl += pt.includes(this.state.grid[i][j])?1:0;
+                    tl += pt.includes(this.state.grid[i][j])?1:0;
+                    tl += pt.includes(this.state.grid[i][j])?1:0;
+                    return tl === 4 && ct === pc.length;
+                }
+            },
+            (i:number, j:number) => {
+                return this.state.grid[i][j] === this.state.mission;
+            },
+            (i:number, j:number) => {
+                return this.state.grid[i][j] === this.state.mission;
+            },
+            (i:number, j:number) => {
+                return false;
+            },
+        ];
+        const rev: Map<string, number> = new Map([['rescue M.U.L.E',(gridsize+2)*(gridsize+2)-3], ['hack rival company',(gridsize+2)*(gridsize+2)-8]]);
+        const action = [
+            ()=>{},
+            () => {
+                this.state.ores[2] += 1;
+                this.setState({turnCount: this.state.turnCount+2, ores: this.state.ores});
+            },
+            () => {
+                this.state.ores[2] += 1;
+                this.setState({turnCount: this.state.turnCount+2, ores: this.state.ores});
+            },
+            ()=>{},
+            () => {
+                if (this.state.turnCount % 2 === 0) {
+                    this.state.ores[2] += 1;
+                    const newgrid = Array.from({ length: gridsize+2 }, (_: number, i: number) => Array.from({ length: gridsize+2 }, (_: number, j: number) => (j===0 || i===0 || j===gridsize+1 || i===gridsize+1 ? 600 : getRandomInt(randmax))));            
+                    var mx = this.state.player_position[0][0];
+                    var my = this.state.player_position[0][1];
+                    for (var i=0;i<pc.length;i++) {
+                        const pos = this.state.player_position[i];
+                        if (pos[0] < mx) {
+                            mx = pos[0];
+                        }
+                        if (pos[1] < my) {
+                            my = pos[1];
+                        }
+                    }
+                    const mnx = mx;
+                    const mny = my;
+                    newgrid[mnx][mny] = this.state.mission;
+                    newgrid[mnx][mny+1] = this.state.mission;
+                    newgrid[mnx+1][mny] = this.state.mission;
+                    newgrid[mnx+1][mny+1] = this.state.mission;
+                    const newcre = Array.from({ length: gridsize+2 }, (_: number, i: number) => Array.from({ length: gridsize+2 }, (_: number, j: number) => 0));
+                
+                const newmon = Array.from({ length: gridsize+2 }, (_: number, i: number) => Array.from({ length: gridsize+2 }, (_: number, j: number) => [-1,-1]));
+                for (var i=0; i< gridsize+2; i++) {
+                    for (var j=0; j< gridsize+2; j++) {
+                        const type = monsterspawnmap.get(getRandomInt(randmax));
+                        if (type) {
+                            if (newcre[i][j] > 0 || !npc.includes(type)) {
+                                continue;
+                            }
+                            newcre[i][j] = type;
+                            newmon[i][j] = [defaultnpcHP[type-10], defaultnpcHP[type-10]];
+                        }
+                        const type2 = monsterspawnmap.get(getRandomInt(randmax));
+                        if (type2) {
+                            if (newcre[i][j] > 0 || !npc.includes(type2)) {
+                                continue;
+                            }
+                            newcre[i][j] = type2;
+                            newmon[i][j] = [defaultnpcHP[type2-10], defaultnpcHP[type2-10]];
+                        }
+                    }
+                }
+                newcre[mnx][mny] = 1;
+                newcre[mnx][mny+1] = 2;
+                newcre[mnx+1][mny] = 3;
+                const newvis = Array.from({ length: gridsize+2 }, (_: number, i: number) => Array.from({ length: gridsize+2 }, (_: number, j: number) => -1));
+                newvis[mnx][mny] = base_vision;
+                newvis[mnx][mny+1]  = base_vision;
+                newvis[mnx+1][mny] = base_vision;
+                    this.setState({creature: newcre, vision_source:newvis, monsterHP:newmon, turnCount: 11, ores:this.state.ores, grid: newgrid});
+                }
+            },
+            () => {
+                this.state.ores[0] += 10;
+                this.setState({turnCount: 10, ores: this.state.ores});
+            },
+            () => {
+                this.state.ores[2] += 5;
+                this.setState({turnCount: 10, ores: this.state.ores});
+            },
+            () => {}
+        ];
+        
+        var res:number = 0;
+        for (var i=0;i<gridsize+2;i++) {
+            for (var j=0;j<gridsize+2;j++) {
+                res += ((ref[this.state.mission+100](i,j)) ? 1 : 0);
+            }
+        }
+        const fin:boolean = (rev.get((mission[this.state.mission+100]))? ((gridsize+2)*(gridsize+2)-rev.get(mission[this.state.mission+100])!):0) < (rev.get((mission[this.state.mission+100]))?(gridsize+2)*(gridsize+2)-res :res);
+        if (fin) {
+            action[this.state.mission+100]();
+        }
+    }
+
+    win(mis: number) {
+        return this.state.ores[0] + this.state.ores[2] * 3 >= mis * 30 + 15;
     }
 
     downloadSaveFile () {
@@ -312,7 +503,7 @@ class Demo extends React.Component<{},DemoState> {
         }
         if (roll >= 4) {
             this.state.players[p-1][0] -= 1;
-            alert(creaturegen.get(this.state.creature[x][y])+" hit "+creaturegen.get(p)+(roll === 6 ? (' critically, '+creaturegen.get(p)+' gain the effect of '+criteffect[this.state.creature[x][y]-10]): '.'));
+            alert((creaturegen.get(this.state.creature[x][y])?creaturegen.get(this.state.creature[x][y]):'exploder')+" hit "+creaturegen.get(p)+(roll === 6 ? (' critically, '+creaturegen.get(p)+' gain the effect of '+criteffect[this.state.creature[x][y]-10]): '.'));
             this.forceUpdate();
         }
     }
@@ -335,22 +526,8 @@ class Demo extends React.Component<{},DemoState> {
         return [x,y]
     }
 
-    checkwin() {
-        var dropped: boolean = true;
-        for (var i=0;i<pc.length;i++) {
-            const pos = this.state.player_position[i];
-            dropped = dropped && cavegen.get(this.state.grid[pos[0]][pos[1]]!) == 'drop pod';
-        }
-        if (dropped) {
-            const value = this.state.ores[0] + this.state.ores[2] * 3;
-            if (value >= 5 * 3) {
-                var mes: string = 'Mission success! Retrieving minerals...\n';
-                for (var i=0;i<ore.length;i++) {
-                    mes += ore[i]+': '+this.state.ores[i].toString()+'\n';
-                }
-                alert(mes);
-            } else {
-                const newgrid = Array.from({ length: gridsize+2 }, (_: number, i: number) => Array.from({ length: gridsize+2 }, (_: number, j: number) => (j===0 || i===0 || j===gridsize+1 || i===gridsize+1 ? 600 : getRandomInt(randmax))));
+    newmis(mis: number) {
+        const newgrid = Array.from({ length: gridsize+2 }, (_: number, i: number) => Array.from({ length: gridsize+2 }, (_: number, j: number) => (j===0 || i===0 || j===gridsize+1 || i===gridsize+1 ? 600 : getRandomInt(randmax))));
                 newgrid[1][1] = 0;
                 newgrid[2][1] = 0;
                 newgrid[1][2] = 0;
@@ -384,6 +561,26 @@ class Demo extends React.Component<{},DemoState> {
                         }
                     }
                 }
+                for (var k=0;k<missionNum[mis+100];k++) {
+                    const misx = getRandomInt(gridsize-missionsize[mis+100])+3-missionsize[mis+100];
+                    const misy = getRandomInt(gridsize-missionsize[mis+100])+3-missionsize[mis+100];
+                    for (var i=0;i<missionsize[mis+100];i++) {
+                        for (var j=0;j<missionsize[mis+100];j++) {
+                            newgrid[misx+i][misy+j] = mis;
+                            newvis[misx+i][misy+j] = 0;
+                        }
+                    }
+                }
+                const iii = Math.floor((gridsize+2)/3*2) + getRandomInt(Math.floor((gridsize+2)/4));
+                const jjj = Math.floor((gridsize+2)/3*2) + getRandomInt(Math.floor((gridsize+2)/4));
+                if (mission[mis+100] == 'golden dreadnought') {
+                    newcre[iii][jjj] = 100;
+                    newmon[iii][jjj] = [bossHP[0], bossHP[0]];
+                } 
+                if (mission[mis+100] == 'the caretaker') {
+                    newcre[iii][jjj] = 101;
+                    newmon[iii][jjj] = [bossHP[1], bossHP[1]];       
+                }
                 this.setState({
                     grid: newgrid,
                     creature: newcre,
@@ -397,6 +594,23 @@ class Demo extends React.Component<{},DemoState> {
                     monsterHP: newmon,
                     turnCount: 1,
                 });
+    }
+
+    checkwin() {
+        var dropped: boolean = true;
+        for (var i=0;i<pc.length;i++) {
+            const pos = this.state.player_position[i];
+            dropped = dropped && cavegen.get(this.state.grid[pos[0]][pos[1]]!) == 'drop pod';
+        }
+        if (dropped) {
+            if (this.win(this.state.mission-100)) {
+                var mes: string = 'Mission success! Retrieving minerals...\n';
+                for (var i=0;i<ore.length;i++) {
+                    mes += ore[i]+': '+this.state.ores[i].toString()+'\n';
+                }
+                alert(mes);
+            } else {
+                this.newmis(this.state.mission)
                 alert("You have yet to satisfy the mission quota, continue your good work!");
             }
         }
@@ -453,9 +667,6 @@ class Demo extends React.Component<{},DemoState> {
 
     useweapon(player: number, type: number) {
         if (this.state.weapon !== type) {
-            if (this.state.players[player-1][type*2]>0 && !(player === 1 && type ===3)) {
-                this.state.players[player-1][type*2] -= 1;
-            }
             this.setState({weapon: type});
             this.forceUpdate();
         } else {
@@ -467,6 +678,7 @@ class Demo extends React.Component<{},DemoState> {
         if (this.state.weapon <= 0) {
             return
         } else if (this.state.weapon === 4) {
+            this.state.players[this.state.control-1][this.state.weapon*2] -= 1;
             this.state.vision_source[i][j] = this.state.control === 1 ? 4 : 0;
             if (this.state.control === 1) {
                 if (this.state.special[0][0] === -1 && this.state.special[0][1] === -1) {
@@ -480,6 +692,9 @@ class Demo extends React.Component<{},DemoState> {
                     this.state.vision_source[remove[0]][remove[1]] = -1;
                 } 
             } else {
+                if (this.state.players[this.state.control-1][this.state.weapon*2]>0 && !(this.state.control-1 === 1 && this.state.control-1 ===3)) {
+                    this.state.players[this.state.control-1][this.state.weapon*2] -= 1;
+                }
                 this.state.special[this.state.control] = [i, j];
             }
         }
@@ -498,9 +713,67 @@ class Demo extends React.Component<{},DemoState> {
         };
     }
 
+    bossspawn() {
+        const i = Math.floor((gridsize+2)/3*2) + getRandomInt(Math.floor((gridsize+2)/4));
+        const j = Math.floor((gridsize+2)/3*2) + getRandomInt(Math.floor((gridsize+2)/4));
+        if (mission[this.state.mission+100] == 'golden dreadnought') {
+            this.state.creature[i][j] = 100;
+            this.state.monsterHP[i][j] = [bossHP[0], bossHP[0]];
+        } 
+        if (mission[this.state.mission+100] == 'the caretaker') {
+            this.state.creature[i][j] = 101;
+            this.state.monsterHP[i][j] = [bossHP[1], bossHP[1]];       
+        }
+    }
+
+    bossact(x: number, y: number) {
+        const bossAction = [
+            ()=>{
+                var disrange: number[] = pc.toSorted((k1: number, k2: number) => getRandomInt(10)*0.1 + distance([x,y], this.state.player_position[k1-1])-distance([x,y], this.state.player_position[k2-1]));
+                for (var i=0;i<pc.length;i++) {
+                    const tg = this.state.player_position[disrange[i]-1];
+                    if (cavegen.get(this.state.grid[tg[0]][tg[1]])=='floor') {
+                        this.state.grid[tg[0]][tg[1]] = getRandomInt(10)<3?950:600;
+                        return
+                    }
+                }
+            },
+            ()=>{
+                var disrange: number[] = pc.toSorted((k1: number, k2: number) => getRandomInt(10)*0.1 + distance([x,y], this.state.player_position[k1-1])-distance([x,y], this.state.player_position[k2-1]));
+                for (var i=0;i<pc.length;i++) {
+                    const tg = this.state.player_position[disrange[i]-1];
+                    const tg1 = [tg[0]+1, tg[1]];
+                    const tg2 = [tg[0]-1, tg[1]];
+                    const tg3 = [tg[0], tg[1]+1];
+                    const tg4 = [tg[0]+1, tg[1]+1];
+                    const tg5 = [tg[0]-1, tg[1]+1];
+                    const tg6 = [tg[0], tg[1]-1];
+                    const tg7 = [tg[0]-1, tg[1]-1];
+                    const tg8 = [tg[0]+1, tg[1]-1];
+                    const tgs = [tg1,tg2,tg3,tg4,tg5,tg6,tg7,tg8];
+                    for (var j=0;j<8;j++) {
+                        if (this.state.creature[i][j]<=0) {
+                            this.spawn_monster_no_update(10+getRandomInt(npc.length),tg[0],tg[1]);
+                            return;
+                        }
+                    }
+                }
+            }
+        ]
+        if (this.checkvision(x, y)) {
+            if (mission[this.state.mission+100] == 'golden dreadnought') {
+                bossAction[0]();
+            } 
+            if (mission[this.state.mission+100] == 'the caretaker') {
+                bossAction[1]();      
+            }
+            this.forceUpdate();
+        }
+    }
+
     render() {
         return <div style={{margin: 'max(30px, 6%) max(30px, 6%) max(30px, 6%) max(30px, 6%)', width: 50*gridsize + 650, height: 50*gridsize + 300}}>
-            <h3>Cave [Turn Count: {this.state.turnCount}]</h3>
+            <h3>MISSON: {mission[this.state.mission+100] ? mission[this.state.mission+100] : 'Mine Morkite'} [Turn Count: {this.state.turnCount} / {10-this.state.ores[3]*2}]</h3>
             <div style={{display: 'flex', flexDirection: 'row', alignItems: 'center', position: 'relative'}}>
                 <div style={{backgroundColor: '#222222', borderRadius: 10, padding: '20px, 20px, 20px, 20px', width: 50*gridsize+120, aspectRatio: '1/1', position: 'relative'}}>
                     {this.state.grid.map(
@@ -518,7 +791,11 @@ class Demo extends React.Component<{},DemoState> {
                                         if ((this.state.select_grid[0] !== i || this.state.select_grid[1] !== j) || this.state.control !== this.state.creature[this.state.select_creature[0]][this.state.select_creature[1]]) {
                                             return;
                                         } else {
-                                            this.state.grid[i][j] = 0;
+                                            if (cavegen.get(this.state.grid[i][j]) == 'floor') {
+                                                this.state.grid[i][j] = this.state.mission;
+                                            } else {
+                                                this.state.grid[i][j] = 0;
+                                            }
                                             this.forceUpdate();
                                         }
                                     }} onClick={
@@ -557,7 +834,7 @@ class Demo extends React.Component<{},DemoState> {
                                                 this.setState({control: y});
                                             }
                                             this.setState({select_creature: [i, j]});
-                                            if (npc.includes(y)) {
+                                            if (npc.includes(y) || boss.includes(y)) {
                                                 if (this.state.weapon > 0) {
                                                     this.fireweapon(i, j);
                                                     this.setState({weapon: -1});
@@ -650,15 +927,45 @@ class Demo extends React.Component<{},DemoState> {
                     <div onClick={()=>{
                         this.despawn_monster(this.state.select_creature[0], this.state.select_creature[1])
                     }} style={{cursor: 'pointer', position: 'relative', margin: 'auto', width: '80%', height: '30px', backgroundColor: '#990000', marginTop: '20px', textAlign: 'center', lineHeight: '30px' ,borderRadius: '15px'}}><b>Remove</b></div>
-                </div>: '')}
+                </div>: 
+            (this.state.select_creature[0] !== -1 && this.state.select_creature[1] !== -1 && boss.includes(this.state.creature[this.state.select_creature[0]][this.state.select_creature[1]]) ? 
+            <div style={{width: 400, height: 200, border: '7px #222222 solid' , backgroundColor: '#b6b6b6', position:'absolute', top: 0, left: gridsize*50+150, borderRadius: 10}}>
+                <div style={{position: 'relative', marginTop: 20, marginLeft: 20, width: 350, height: 100, display: 'flex', flexDirection: 'row', alignItems: 'center'}}>
+                    <div style={{margin: 20, marginLeft: 5, border: '7px black solid', width: 80, height: 80, borderRadius: '50%', backgroundColor: creaturemap.get(creaturegen.get(this.state.creature[this.state.select_creature[0]][this.state.select_creature[1]])!)}}>
+                        <img src={creatureimage.get(creaturegen.get(this.state.creature[this.state.select_creature[0]][this.state.select_creature[1]])!)} width='100%'></img>
+                    </div>
+                    <div style={{margin: 0, width: 80, height: 80, display: 'inline', fontSize: 20}}>
+                        <b>{creaturegen.get(this.state.creature[this.state.select_creature[0]][this.state.select_creature[1]])}</b>
+                        <br/>
+                        HP: {this.state.monsterHP[this.state.select_creature[0]][this.state.select_creature[1]][0]}/{this.state.monsterHP[this.state.select_creature[0]][this.state.select_creature[1]][1]}
+                        <br/>
+                        Armor: {bossArmor[this.state.creature[this.state.select_creature[0]][this.state.select_creature[1]]-100]}
+                        <div onClick={() => {
+                            this.state.monsterHP[this.state.select_creature[0]][this.state.select_creature[1]][0] = Math.min(this.state.monsterHP[this.state.select_creature[0]][this.state.select_creature[1]][0]+1, this.state.monsterHP[this.state.select_creature[0]][this.state.select_creature[1]][1]);
+                            this.forceUpdate();
+                        }} style={{position: 'absolute', bottom: 10, right: 30, cursor: 'pointer', borderRadius: '50%', width: 25, height: 25, backgroundColor: "#727272", lineHeight: '13px', textAlign: 'center'}}><span style={{verticalAlign: 'middle'}}>+</span></div>
+                        <div onClick={() => {
+                            this.state.monsterHP[this.state.select_creature[0]][this.state.select_creature[1]][0] = Math.max(this.state.monsterHP[this.state.select_creature[0]][this.state.select_creature[1]][0]-1, 0);
+                            this.forceUpdate();
+                        }} style={{position: 'absolute', bottom: 10, right: 0, cursor: 'pointer', borderRadius: '50%', width: 25, height: 25, backgroundColor: "#727272", lineHeight: '13px', textAlign: 'center'}}><span style={{verticalAlign: 'middle'}}>-</span></div>
+                    </div>
+                </div>
+                <div onClick={()=>{
+                    this.state.ores[0] += 30;
+                    this.despawn_monster(this.state.select_creature[0], this.state.select_creature[1]);
+                    this.forceUpdate();
+                }} style={{cursor: 'pointer', position: 'relative', margin: 'auto', width: '80%', height: '30px', backgroundColor: '#990000', marginTop: '20px', textAlign: 'center', lineHeight: '30px' ,borderRadius: '15px'}}><b>Remove</b></div>
+            </div>: ''))}
                 <div onClick={() => {
-                    if (this.state.turnCount < period-Math.min(4, this.state.ores[4]*2)) {
+                    if (this.state.turnCount < Math.max(period-Math.min(4, this.state.ores[4]*2), 2)) {
                         var moved: number[] = [];
                         for (var i=0; i<gridsize+2; i++) {
                             for (var j=0; j<gridsize+2; j++) {
                                 if (npc.includes(this.state.creature[i][j]) && this.checkvision(i,j) && (!moved.includes(i*(gridsize+2)+j))) {
                                     const dest = this.move_monster(i, j);
                                     moved.push(dest[0]*(gridsize+2)+dest[1]);
+                                } else if (boss.includes(this.state.creature[i][j])) {
+                                    this.bossact(i,j);
                                 }
                             }
                         }
@@ -667,6 +974,7 @@ class Demo extends React.Component<{},DemoState> {
                         this.swarm();
                         this.setState({turnCount: 1});
                     }
+                    this.activate();
                     alert('Monster Turn Finished');
                 }}style={{width: 130, height: 50, border: '7px #442222 solid', cursor: 'pointer', backgroundColor: '#332222', position:'absolute', top: 350, left: gridsize*50+150, borderRadius: 10, lineHeight: '50px', textAlign: 'center', color: 'red'}}><b>End Turn</b></div>
                 <div onClick={() => {
@@ -678,6 +986,10 @@ class Demo extends React.Component<{},DemoState> {
                 }}style={{width: 130, height: 50, border: '7px #442222 solid', cursor: 'pointer', backgroundColor: '#332222', position:'absolute', top: 490, left: gridsize*50+150, borderRadius: 10, lineHeight: '50px', textAlign: 'center', color: 'red'}}><b>Save Game</b></div>
                 <input type="file" id='submission' accept={'json'} hidden multiple onChange={(e) => this.loadFile(e.target)}/>
                 <label htmlFor='submission' style={{width: 130, height: 50, border: '7px #442222 solid', cursor: 'pointer', backgroundColor: '#332222', position:'absolute', top: 560, left: gridsize*50+150, borderRadius: 10, lineHeight: '50px', textAlign: 'center', color: 'red'}}><b>Load Game</b></label>
+                <div onClick={() => {
+                    this.newmis((this.state.mission + 101)%mission.length - 100);
+                    this.setState({mission: (this.state.mission + 101)%mission.length - 100});
+                }}style={{width: 130, height: 50, border: '7px #442222 solid', cursor: 'pointer', backgroundColor: '#332222', position:'absolute', top: 630, left: gridsize*50+150, borderRadius: 10, lineHeight: '50px', textAlign: 'center', color: 'red'}}><b>Next Mission</b></div>
                 
             </div>
             <h3>Loot</h3>
