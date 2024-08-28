@@ -396,7 +396,7 @@ class Demo extends React.Component<{},DemoState> {
     }
 
     despawn_monster(i: number, j: number) {
-        if (this.state.creature[i][j] <= 0 || !npc.includes(this.state.creature[i][j])) {
+        if (this.state.creature[i][j] <= 0 || (!npc.includes(this.state.creature[i][j])) && !boss.includes(this.state.creature[i][j])) {
             return
         }
         this.state.select_creature[0] = -1;
@@ -733,7 +733,7 @@ class Demo extends React.Component<{},DemoState> {
                 for (var i=0;i<pc.length;i++) {
                     const tg = this.state.player_position[disrange[i]-1];
                     if (cavegen.get(this.state.grid[tg[0]][tg[1]])=='floor') {
-                        this.state.grid[tg[0]][tg[1]] = getRandomInt(10)<3?950:600;
+                        this.state.grid[tg[0]][tg[1]] = getRandomInt(10)<3?920:600;
                         return
                     }
                 }
@@ -752,8 +752,8 @@ class Demo extends React.Component<{},DemoState> {
                     const tg8 = [tg[0]+1, tg[1]-1];
                     const tgs = [tg1,tg2,tg3,tg4,tg5,tg6,tg7,tg8];
                     for (var j=0;j<8;j++) {
-                        if (this.state.creature[i][j]<=0) {
-                            this.spawn_monster_no_update(10+getRandomInt(npc.length),tg[0],tg[1]);
+                        if (this.state.creature[tgs[i][0]][tgs[i][1]]<=0) {
+                            this.spawn_monster_no_update(10+getRandomInt(npc.length),tgs[i][0],tgs[i][1]);
                             return;
                         }
                     }
@@ -934,7 +934,7 @@ class Demo extends React.Component<{},DemoState> {
                     <div style={{margin: 20, marginLeft: 5, border: '7px black solid', width: 80, height: 80, borderRadius: '50%', backgroundColor: creaturemap.get(creaturegen.get(this.state.creature[this.state.select_creature[0]][this.state.select_creature[1]])!)}}>
                         <img src={creatureimage.get(creaturegen.get(this.state.creature[this.state.select_creature[0]][this.state.select_creature[1]])!)} width='100%'></img>
                     </div>
-                    <div style={{margin: 0, width: 80, height: 80, display: 'inline', fontSize: 20}}>
+                    <div style={{margin: 0, width: 100, height: 80, display: 'inline', fontSize: 20}}>
                         <b>{creaturegen.get(this.state.creature[this.state.select_creature[0]][this.state.select_creature[1]])}</b>
                         <br/>
                         HP: {this.state.monsterHP[this.state.select_creature[0]][this.state.select_creature[1]][0]}/{this.state.monsterHP[this.state.select_creature[0]][this.state.select_creature[1]][1]}
