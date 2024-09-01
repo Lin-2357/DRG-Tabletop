@@ -498,14 +498,19 @@ class Demo extends React.Component<{},DemoState> {
 
     attack(x: number, y: number, p: number) {
         const roll = 1 + getRandomInt(6);
-        if (creaturegen.get(this.state.creature[x][y]) == "exploder") {
-            this.despawn_monster(x, y);
-        }
         if (roll >= 4) {
             this.state.players[p-1][0] -= 1;
             alert((creaturegen.get(this.state.creature[x][y])?creaturegen.get(this.state.creature[x][y]):'exploder')+" hit "+creaturegen.get(p)+(roll === 6 ? (' critically, '+creaturegen.get(p)+' gain the effect of '+criteffect[this.state.creature[x][y]-10]): '.'));
-            this.forceUpdate();
         }
+        if (creaturegen.get(this.state.creature[x][y]) == "exploder") {
+            this.state.select_creature[0] = -1;
+            this.state.select_creature[1] = -1; 
+            this.state.monsterHP[x][y][0] = -1;
+            this.state.monsterHP[x][y][1] = -1;
+            this.state.creature[x][y] = 0;
+        }
+        this.forceUpdate();
+
     }
 
     move_monster(x: number, y: number) {
@@ -622,6 +627,9 @@ class Demo extends React.Component<{},DemoState> {
         }
         const x = this.state.player_position[num-1][0];
         const y = this.state.player_position[num-1][1];
+        if (i===x && j===y) {
+            return;
+        }
         this.state.player_position[num-1][0] = i;
         this.state.player_position[num-1][1] = j;
         this.state.creature[i][j] = num;
@@ -697,6 +705,10 @@ class Demo extends React.Component<{},DemoState> {
                 }
                 this.state.special[this.state.control] = [i, j];
             }
+        } else {
+            if (this.state.players[this.state.control-1][this.state.weapon*2]>0 && !(this.state.control-1 === 1 && this.state.control-1 ===3)) {
+                this.state.players[this.state.control-1][this.state.weapon*2] -= 1;
+            }        
         }
         this.forceUpdate();
     }
@@ -808,7 +820,6 @@ class Demo extends React.Component<{},DemoState> {
                                             } else {
                                                 if (this.state.weapon > 0) {
                                                     this.fireweapon(i, j);
-                                                    this.setState({weapon: -1});
                                                 } else {
                                                     this.move_player(this.state.control, i, j);
                                                 }
