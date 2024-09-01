@@ -172,8 +172,8 @@ class Demo extends React.Component<{},DemoState> {
             this.state.vision_source[1][1] = base_vision;
             this.state.vision_source[2][1] = base_vision;
             this.state.vision_source[1][2] = base_vision;
-            this.swarm_no_update();
-            this.swarm_no_update();
+            this.initialize_monster();
+            this.initialize_monster();
             for (var k=0;k<missionNum[this.state.mission];k++) {
                 const misx = getRandomInt(gridsize-missionsize[this.state.mission+100])+3-missionsize[this.state.mission+100];
                 const misy = getRandomInt(gridsize-missionsize[this.state.mission+100])+3-missionsize[this.state.mission+100];
@@ -366,9 +366,23 @@ class Demo extends React.Component<{},DemoState> {
         URL.revokeObjectURL(href);
     }
     
+    initialize_monster() {
+        for (var i=0; i< gridsize+2; i++) {
+            for (var j=0; j< gridsize+2; j++) {
+                const monster = monsterspawnmap.get(getRandomInt(randmax));
+                if (monster) {
+                    this.spawn_monster_no_update(monster, i, j);
+                }
+            }
+        }
+    }
+
     swarm_no_update() {
         for (var i=0; i< gridsize+2; i++) {
             for (var j=0; j< gridsize+2; j++) {
+                if (!this.checkvision && getRandomInt(10) !== 1) {
+                    continue;
+                }
                 const monster = monsterspawnmap.get(getRandomInt(randmax));
                 if (monster) {
                     this.spawn_monster_no_update(monster, i, j);
